@@ -1,0 +1,141 @@
+---
+title: "7004_GroupProject"
+output: html_document
+#Group 1
+#Name and Student ID
+#1. Lim YongMeng 17217878
+#2. Khairul Hafiz Khairol Annuur 17217763
+#3. Omar Messaoud 17220712
+#4. Mamadou Alpha Hawa Balde 17220875
+#5. Hew Chee Yoong 17217718
+#6. Tan Hiap Li 17219269
+---
+
+```{r}
+# Import necessary library
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+```
+
+```{r}
+# Read CSV into R
+df <- read.csv(file='C:/Users/DASABC/Desktop/Course/WQD7004 PROGRAMMING FOR DATA SCIENCE/Assignment/Telco-Customer-Churn.csv', header=TRUE, sep=',')
+df
+```
+
+```{r}
+# Check the dimension of dataset
+dim(df)
+```
+
+```{r}
+## Data Cleaning
+# Check number and format of columns
+glimpse(df)
+```
+
+```{r}
+# Check unique values of all columns
+# No duplicate of rows, as all customerID are unique
+summary(df)
+```
+
+```{r}
+# Format conversion & label encoding
+# Label encoding on categorical data set
+df$gender <- factor(df$gender, levels=c("Female","Male"), labels=c(0,1))
+df$SeniorCitizen <- as.factor(df$SeniorCitizen)
+df$Partner <- factor(df$Partner, levels=c("No","Yes"), labels=c(0,1))
+df$Dependents <- factor(df$Dependents, levels=c("No","Yes"), labels=c(0,1))
+df$PhoneService <- factor(df$PhoneService, levels=c("No","Yes"), labels=c(0,1))
+df$MultipleLines <- factor(df$MultipleLines, levels=c("No",'No phone service',"Yes"), labels=c(0,1,2))
+df$InternetService <- factor(df$InternetService, levels=c('No',"DSL",'Fiber optic'), labels=c(0,1,2))
+df$OnlineSecurity <- factor(df$OnlineSecurity, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$OnlineBackup <- factor(df$OnlineBackup, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$DeviceProtection <- factor(df$DeviceProtection, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$TechSupport <- factor(df$TechSupport, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$StreamingTV <- factor(df$StreamingTV, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$StreamingMovies <- factor(df$StreamingMovies, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$Contract <- factor(df$Contract, levels=c('Month-to-month','One year','Two year'),labels=c(0,1,2))
+df$PaperlessBilling <- factor(df$PaperlessBilling, levels=c("No","Yes"), labels=c(0,1))
+df$PaymentMethod <- factor(df$PaymentMethod, levels=c("Electronic check","Mailed check",'Bank transfer (automatic)','Credit card (automatic)'), labels=c(1,2,3,4))
+df$Churn <- factor(df$Churn, levels=c("No","Yes"), labels=c(0,1))
+```
+
+
+```{r}
+#Export cleaned data
+write.csv(df,'telco_churn_cleaned_data.csv')
+```
+
+
+```{r}
+# Reformat the columns
+categorical_var <-  c('gender', 'SeniorCitizen', 'Partner', 'Dependents', 'PhoneService', 'MultipleLines', 'InternetService',
+                      'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies',
+                      'Contract', 'PaperlessBilling', 'PaymentMethod', 'Churn')
+df[categorical_var] <- lapply(df[categorical_var], factor)
+```
+
+
+```{r}
+# Missing values
+# Check number of columns with missing value
+colSums(is.na(df))
+```
+
+```{r}
+# Impute the missing values with media,. as only 1 column of data is missing, other columns might contains important information
+
+summary(df$TotalCharges)
+```
+
+
+```{r}
+# As outliers are present in the datasets, we replace the missing values with median values
+df <- df %>% mutate(TotalCharges = replace(TotalCharges, is.na(TotalCharges), median(TotalCharges, na.rm = TRUE)))
+colSums(is.na(df))
+```
+
+
+```{r}
+# Outliers/Anomaly
+Plot1 <- boxplot(df$tenure,
+                 main = "Customer's Tenure",
+                 xlab = "Tenure",
+                 horizontal = T)
+```
+
+```{r}
+# Slightly negative skewed
+boxplot(df$MonthlyCharges,
+        main = "Monthly Charges on Customer",
+        xlab = "Monthly Charges",
+        horizontal = T)
+```
+
+
+```{r}
+# Highly positive skewed
+boxplot(df$TotalCharges,
+        main = "Total Charges on Customer",
+        xlab = "Tenure",
+        horizontal = T)
+```
+
+
+```{r}
+# Data Exploration
+# Relationship between continuos variables with churn probability
+df %>% ggplot(aes(x=tenure,fill=Churn))+ geom_density(alpha=0.5)+scale_fill_manual(values=c('blue','red'))+labs(title='Tenure density split churn vs non churn' )
+df %>% ggplot(aes(x=MonthlyCharges,fill=Churn))+ geom_density(alpha=0.5)+scale_fill_manual(values=c('blue','red'))+labs(title='Monthly Charges density split churn vs non churn' )
+df %>% ggplot(aes(x=TotalCharges,fill=Churn))+ geom_density(alpha=0.5)+scale_fill_manual(values=c('blue','red'))+labs(title='Total Charges density split churn vs non churn' )
+
+```
+
+
+
+
+
