@@ -1,0 +1,287 @@
+---
+  title: "Telco_Churn"
+output: html_document
+fig_width: 6 
+fig_height: 4 
+---
+  
+  
+```{r}
+#setwd("~/R/Rcodes")
+
+df<-read.csv("Telco_churn.csv",header=TRUE)
+
+## load library
+library(dplyr)
+library(tidyverse) 
+library(ggplot2)
+library(ggcorrplot)
+library(reshape2)
+
+#study dataframe structure - identified 11rows with totalcharges NA and tenure=0
+str(df)
+glimpse(df)
+summary(df)
+sapply(df, function(x) sum(is.na(x)))
+
+
+## Data Pre-processing
+
+#fil up 11 missing value in totalcharges by using median 
+#using median due to positive skewness
+boxplot(df$TotalCharges)
+df$TotalCharges[is.na(df$TotalCharges)] <- median(df$TotalCharges,na.rm=TRUE)
+
+#fill up tenure=0 with mean as it is more normally distributed
+boxplot(df$tenure)
+df$tenure[df$tenure==0] <- mean(df$tenure,na.rm=TRUE)
+```
+
+
+```{r}
+#Converting all factor categorical variable to factor numeric for later predictive modeling purpose
+df$gender <- factor(df$gender, levels=c("Female","Male"), labels=c(0,1))
+df$SeniorCitizen <- as.factor(df$SeniorCitizen)
+df$Partner <- factor(df$Partner, levels=c("No","Yes"), labels=c(0,1))
+df$Dependents <- factor(df$Dependents, levels=c("No","Yes"), labels=c(0,1))
+df$PhoneService <- factor(df$PhoneService, levels=c("No","Yes"), labels=c(0,1))
+df$MultipleLines <- factor(df$MultipleLines, levels=c("No",'No phone service',"Yes"), labels=c(0,1,2))
+df$InternetService <- factor(df$InternetService, levels=c('No',"DSL",'Fiber optic'), labels=c(0,1,2))
+df$OnlineSecurity <- factor(df$OnlineSecurity, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$OnlineBackup <- factor(df$OnlineBackup, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$DeviceProtection <- factor(df$DeviceProtection, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$TechSupport <- factor(df$TechSupport, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$StreamingTV <- factor(df$StreamingTV, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$StreamingMovies <- factor(df$StreamingMovies, levels=c("No",'No internet service',"Yes"), labels=c(0,1,2))
+df$Contract <- factor(df$Contract, levels=c('Month-to-month','One year','Two year'),labels=c(0,1,2))
+df$PaperlessBilling <- factor(df$PaperlessBilling, levels=c("No","Yes"), labels=c(0,1))
+df$PaymentMethod <- factor(df$PaymentMethod, levels=c("Electronic check","Mailed check",'Bank transfer (automatic)','Credit card (automatic)'), labels=c(1,2,3,4))
+df$Churn <- factor(df$Churn, levels=c("No","Yes"), labels=c(0,1))
+
+```
+
+
+```{r}
+write.csv(df,'telco_churn_cleaned_data.csv')
+```
+
+```{r}
+#basic plotting for analysis
+options(repr.plot.width = 6, repr.plot.height = 4)
+df %>% group_by(Churn) %>% summarise(Count = n())%>% 
+  mutate(percent = prop.table(Count)*100)%>%
+  ggplot(aes(reorder(Churn, -percent), percent), fill = Churn)+
+  geom_col(fill = c("#FC4E07", "#E7B800"))+
+  geom_text(aes(label = sprintf("%.2f%%", percent)), hjust = 0.01,vjust = -0.5, size =3)+ 
+  theme_bw()+  
+  xlab("Churn") + 
+  ylab("Percent")+
+  ggtitle("Churn Percent")
+```
+
+```{r}
+#options(repr.plot.width = 12, repr.plot.height = 8)
+#Customer Account Info
+ggplot(df, aes(x=Contract,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Contract vs Churn')
+ggplot(df, aes(x=PaperlessBilling,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('PaperlessBilling vs Churn')
+ggplot(df, aes(x=PaymentMethod,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('PaymentMethod vs Churn')
+ggplot(df, aes(y= tenure, x = "", fill = Churn)) + geom_boxplot()+theme_bw()+ xlab("")+ggtitle('Tenure vs Churn')
+ggplot(df, aes(y= MonthlyCharges, x = "", fill = Churn)) + geom_boxplot()+theme_bw()+ xlab("")+ggtitle('MonthlyCharges vs Churn')
+ggplot(df, aes(y= TotalCharges, x = "", fill = Churn)) + geom_boxplot()+theme_bw()+ xlab("")+ggtitle('TotalCharges vs Churn')
+
+ggplot(df, aes(x = tenure, fill = Churn)) + geom_density(alpha = 0.4) + labs(title = "Churn by tenure")
+ggplot(df, aes(x = MonthlyCharges, fill = Churn)) + geom_density(alpha = 0.4) + labs(title = "Churn by Monthly Charges")
+ggplot(df, aes(x = TotalCharges, fill = Churn)) + geom_density(alpha = 0.4) + labs(title = "Churn by Total Charges")
+
+```
+
+```{r}
+#Customer Demographic
+ggplot(df, aes(x=gender,fill=Churn))+ geom_bar()+ theme_bw()+ggtitle('Gender vs Churn')
+ggplot(df, aes(x=SeniorCitizen,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen vs Churn')
+ggplot(df, aes(x=Partner,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Partner vs Churn')
+ggplot(df, aes(x=Dependents,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Dependents vs Churn')
+
+```
+
+```{r}
+#Type of services customer signed up 
+ggplot(df, aes(x=PhoneService,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('PhoneService vs Churn')
+ggplot(df, aes(x=MultipleLines,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('MultipleLines vs Churn')
+ggplot(df, aes(x=InternetService,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('InternetService vs Churn')       
+ggplot(df, aes(x=OnlineSecurity,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('OnlineSecurity vs Churn') 
+ggplot(df, aes(x=OnlineBackup,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('OnlineBackup vs Churn') 
+ggplot(df, aes(x=DeviceProtection,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('DeviceProtection vs Churn') 
+ggplot(df, aes(x=TechSupport,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('TechSupport vs Churn')
+ggplot(df, aes(x=StreamingTV,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('StreamingTV vs Churn')
+ggplot(df, aes(x=StreamingMovies,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('StreamingMovies vs Churn')
+
+
+```
+
+```{r}
+##Senior Citizen Deep Dive
+Senior <- df %>% filter(SeniorCitizen==1)
+
+ggplot(Senior, aes(x=PaymentMethod,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen Payment Method vs Churn')
+ggplot(Senior, aes(x=InternetService,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen Internet Service vs Churn')
+ggplot(Senior, aes(x=PaperlessBilling,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen Paperless Billing vs Churn')
+ggplot(Senior, aes(x=PhoneService,fill=Churn))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen Phone Service vs Churn')
+ggplot(Senior, aes(y= MonthlyCharges, x = "", fill = Churn)) + geom_boxplot()+theme_bw()+ xlab("")+ggtitle('MonthlyCharges vs Churn')
+ggplot(df, aes(x=SeniorCitizen,fill=InternetService))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen vs Internet Service')
+ggplot(df, aes(x=SeniorCitizen,fill=PaymentMethod))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen vs Payment Method')
+ggplot(df, aes(x=SeniorCitizen,fill=PaperlessBilling))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen vs Paperless Billing')
+ggplot(df, aes(x=SeniorCitizen,fill=Contract))+ geom_bar(position = 'fill')+theme_bw()+ggtitle('Senior Citizen vs Contract')
+
+```
+
+```{r}
+##Internet Service Deep Dive
+Fibre <- df %>% filter(InternetService=='Fiber optic')
+ggplot(Fibre, aes(y= MonthlyCharges, x = "", fill = Churn)) + geom_boxplot()+theme_bw()+ xlab("")+ggtitle('Fibre Optic MonthlyCharges vs Churn')
+
+DSL <- df %>% filter(InternetService=='DSL')
+ggplot(DSL, aes(y= MonthlyCharges, x = "", fill = Churn)) + geom_boxplot()+theme_bw()+ xlab("")+ggtitle('DSL MonthlyCharges vs Churn')
+
+No <- df %>% filter(InternetService=='No')
+ggplot(No, aes(y= MonthlyCharges, x = "", fill = Churn)) + geom_boxplot()+theme_bw()+ xlab("")+ggtitle('No Internet MonthlyCharges vs Churn')
+
+```
+
+```{r}
+#3 dimension Analysis 
+ggplot(df, aes(x = tenure, fill = Churn)) + geom_density(alpha = 0.4) + labs(title = "Tenure Churn by Citizen type") + facet_wrap(~SeniorCitizen)
+ggplot(df, aes(x=Contract,fill=Churn))+ geom_bar(position = "Fill")+facet_wrap(~gender) + theme_bw()+ggtitle('Contract vs Churn by Senior')
+
+```
+
+
+```{r}
+# Features engineering
+#Remove customer ID - as not using it for modeling and analysis
+df$customerID <-NULL
+
+# add attributes - tenure group for analysis purpose
+group_tenure <- function(tenure){
+  if (tenure >= 0 & tenure <= 12){
+    return('0-12 Month')
+  }else if(tenure > 12 & tenure <= 24){
+    return('12-24 Month')
+  }else if (tenure > 24 & tenure <= 48){
+    return('24-48 Month')
+  }else if (tenure > 48 & tenure <=60){
+    return('48-60 Month')
+  }else if (tenure > 60){
+    return('> 60 Month')
+  }
+}
+
+df$tenure_group <- sapply(df$tenure,group_tenure)
+df$tenure_group <- as.factor(df$tenure_group)
+```
+
+```{r}
+cormat <- subset(df, select = c(MonthlyCharges,tenure,TotalCharges) ) 
+cormat<- sapply(cormat, as.numeric)
+cormat <- round(cor(cormat),2)
+head(cormat)
+```
+
+```{r}
+melted_cormat <- melt(cormat)
+head(melted_cormat)
+
+```
+
+```{r}
+# Get lower triangle of the correlation matrix
+get_lower_tri<-function(cormat){
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+```
+
+```{r}
+upper_tri <- get_upper_tri(cormat)
+upper_tri
+```
+
+```{r}
+reorder_cormat <- function(cormat){
+  # Use correlation between variables as distance
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+
+```
+
+```{r, fig.width=10, fig.height=8}
+# Reorder the correlation matrix
+cormat <- reorder_cormat(cormat)
+upper_tri <- get_upper_tri(cormat)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, 
+                                   size = 15, hjust = 1))+
+  coord_fixed()
+
+```
+
+```{r, fig.width=10, fig.height=8}
+ggheatmap + 
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 10) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks = element_blank(),
+    legend.justification = c(1, 0),
+    legend.position = c(0.6, 0.7),
+    legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 15, barheight = 1,
+                               title.position = "top", title.hjust = 0.5))
+
+```
+```{r}
+# Define color for each of the 3 iris species
+colors <- c("#00AFBB", "#E7B800")
+colors <- colors[as.numeric(df$Churn)]
+
+# Define shapes
+shapes = c(16, 17) 
+shapes <- shapes[as.numeric(df$Churn)]
+
+
+plot(x = df$tenure, y = df$TotalCharges, frame = FALSE,
+     xlab = "Tenure", ylab = "Total Charges",
+     col = colors, pch = shapes)
+legend("topleft", legend = levels(df$Churn),
+       col =  c("#00AFBB", "#E7B800", "#FC4E07"),
+       pch = c(16, 17) )
+
+
+plot(x = df$tenure, y = df$MonthlyCharges, frame = FALSE,
+     xlab = "Tenure", ylab = "Monthly Charges",
+     col = colors, pch = shapes)
+legend("topleft", legend = levels(df$Churn),
+       col =  c("#00AFBB", "#E7B800", "#FC4E07"),
+       pch = c(16, 17) )
+
+
+```
