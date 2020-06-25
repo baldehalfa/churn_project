@@ -25,11 +25,7 @@ sapply(df, function(x) sum(is.na(x)))
 
 
 ## Data Pre-processing
-#Option 1
-#remove 11 data as totalcharges=NA
-df<- filter(df,!is.na(TotalCharges))
 
-#Option 2
 #fil up 11 missing value in totalcharges by using median 
 #using median due to positive skewness
 boxplot(df$TotalCharges)
@@ -176,16 +172,13 @@ df$tenure_group <- as.factor(df$tenure_group)
 ```
 
 ```{r}
-cormat <- subset(df, select = -c(tenure_group) ) 
+cormat <- subset(df, select = c(MonthlyCharges,tenure,TotalCharges) ) 
 cormat<- sapply(cormat, as.numeric)
 cormat <- round(cor(cormat),2)
 head(cormat)
-
-
 ```
 
 ```{r}
-
 melted_cormat <- melt(cormat)
 head(melted_cormat)
 
@@ -203,12 +196,11 @@ head(melted_cormat)
     return(cormat)
   }
 
-````
+```
 
 ```{r}
 upper_tri <- get_upper_tri(cormat)
 upper_tri
-
 ```
 
 ```{r}
@@ -235,14 +227,14 @@ ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
     name="Pearson\nCorrelation") +
   theme_minimal()+ # minimal theme
  theme(axis.text.x = element_text(angle = 90, vjust = 1, 
-    size = 8, hjust = 1))+
+    size = 15, hjust = 1))+
  coord_fixed()
 
 ```
 
 ```{r, fig.width=10, fig.height=8}
 ggheatmap + 
-geom_text(aes(Var2, Var1, label = value), color = "black", size = 3) +
+geom_text(aes(Var2, Var1, label = value), color = "black", size = 10) +
 theme(
   axis.title.x = element_blank(),
   axis.title.y = element_blank(),
@@ -253,8 +245,34 @@ theme(
   legend.justification = c(1, 0),
   legend.position = c(0.6, 0.7),
   legend.direction = "horizontal")+
-  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+  guides(fill = guide_colorbar(barwidth = 15, barheight = 1,
                 title.position = "top", title.hjust = 0.5))
 
 ```
+```{r}
+# Define color for each of the 3 iris species
+colors <- c("#00AFBB", "#E7B800")
+colors <- colors[as.numeric(df$Churn)]
 
+# Define shapes
+shapes = c(16, 17) 
+shapes <- shapes[as.numeric(df$Churn)]
+
+
+plot(x = df$tenure, y = df$TotalCharges, frame = FALSE,
+     xlab = "Tenure", ylab = "Total Charges",
+      col = colors, pch = shapes)
+ legend("topleft", legend = levels(df$Churn),
+       col =  c("#00AFBB", "#E7B800", "#FC4E07"),
+       pch = c(16, 17) )
+
+ 
+ plot(x = df$tenure, y = df$MonthlyCharges, frame = FALSE,
+     xlab = "Tenure", ylab = "Monthly Charges",
+      col = colors, pch = shapes)
+ legend("topleft", legend = levels(df$Churn),
+       col =  c("#00AFBB", "#E7B800", "#FC4E07"),
+       pch = c(16, 17) )
+
+
+```
