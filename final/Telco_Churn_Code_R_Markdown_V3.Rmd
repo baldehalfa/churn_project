@@ -31,10 +31,6 @@ sapply(df, function(x) sum(is.na(x)))
 #using median due to positive skewness
 boxplot(df$TotalCharges)
 df$TotalCharges[is.na(df$TotalCharges)] <- median(df$TotalCharges,na.rm=TRUE)
-
-#fill up tenure=0 with mean as it is more normally distributed
-boxplot(df$tenure)
-df$tenure[df$tenure==0] <- mean(df$tenure,na.rm=TRUE)
 ```
 
 
